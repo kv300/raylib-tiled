@@ -15,6 +15,10 @@ int main() {
     SetTargetFPS(60);
 
     Map map = LoadMap("resources/desert.json");
+    if (!IsMapValid(map)) {
+        TraceLog(LOG_ERROR, "Failed to load Map");
+        return 1;
+    }
 
     //---------------------------------------------------------------------------------------
 

@@ -43,7 +43,7 @@ typedef struct Map Map;
 
 Map LoadMap(const char* fileName);
 Map LoadMapFromMemory(const unsigned char *fileData, int dataSize, const char* baseDir);
-bool IsMapReady(Map map);
+bool IsMapValid(Map map);
 void UnloadMap(Map map);
 void DrawMap(Map map, int posX, int posY, Color tint);
 
@@ -67,15 +67,18 @@ void DrawMap(Map map, int posX, int posY, Color tint);
 #define CUTE_TILED_WARNING(msg) TraceLog(LOG_WARNING, "TILED: %s (cute_tiled.h:%i)", msg, __LINE__)
 
 #define STRPOOL_EMBEDDED_ASSERT(condition) if (!(condition)) { TraceLog(LOG_ERROR, "TILED: Failed assert \"%s\" in %s:%i", #condition, __FILE__, __LINE__); }
+// #define STRPOOL_EMBEDDED_MEMSET( ptr, val, cnt ) ( memset( ptr, val, cnt ) )
+// #define STRPOOL_EMBEDDED_MEMCPY( dst, src, cnt ) ( memcpy( dst, src, cnt ) )
+//#define STRPOOL_EMBEDDED_MEMCMP( pr1, pr2, cnt ) ( memcmp( pr1, pr2,
 #define STRPOOL_EMBEDDED_STRNICMP(s1, s2, len) (TextIsEqual(TextToLower(s1), TextToLower(s2)))
 
 #define STRPOOL_EMBEDDED_MALLOC(ctx, size) (MemAlloc(size))
 #define STRPOOL_EMBEDDED_FREE(ctx, ptr) (MemFree(ptr))
 
-/*
-// TODO: Override how Cute attempts to load files.
-#define CUTE_TILED_STDIO
-#define CUTE_TILED_SNPRINTF(s, n, format, arg1, arg2) TextCopy(error, TextFormat(format, arg1, arg2))
+//#define CUTE_TILED_MEMCPY memcpy
+//#define CUTE_TILED_MEMSET memset
+
+#define CUTE_TILED_SNPRINTF(s, n, format, arg1, arg2) (void)0
 #define CUTE_TILED_SEEK_SET 0
 #define CUTE_TILED_SEEK_END 0
 #define CUTE_TILED_FILE void
@@ -107,7 +110,6 @@ void raylib_tiled_fclose(CUTE_TILED_FILE* fp) {
 #define CUTE_TILED_FREAD raylib_tiled_fread
 #define CUTE_TILED_FTELL raylib_tiled_ftell
 #define CUTE_TILED_FCLOSE raylib_tiled_fclose
-*/
 
 #ifdef __cplusplus
 extern "C" {
@@ -151,7 +153,6 @@ void LoadMapStringTexture(cute_tiled_string_t* image, const char* baseDir) {
     texturePtr->mipmaps = texture.mipmaps;
     texturePtr->width = texture.width;
     image->ptr = (const char*)texturePtr;
-    TraceLog(LOG_INFO, "%i", image->hash_id);
 }
 
 void LoadMapLayerData(cute_tiled_layer_t* layer, const char* baseDir) {
@@ -183,11 +184,10 @@ void UnloadMapLayerData(cute_tiled_layer_t* layer) {
 }
 
 Map LoadMapFromMemory(const unsigned char *fileData, int dataSize, const char* baseDir) {
-    struct Map output;
+    struct Map output = {0};
     cute_tiled_map_t* map = cute_tiled_load_map_from_memory(fileData, dataSize, 0);
     if (map == NULL) {
         TraceLog(LOG_ERROR, "TILED: Failed to load map data");
-        output.map = NULL;
         return output;
     }
 
@@ -211,7 +211,7 @@ Map LoadMapFromMemory(const unsigned char *fileData, int dataSize, const char* b
     return output;
 }
 
-bool IsMapReady(Map map) {
+bool IsMapValid(Map map) {
     return map.map != NULL;
 }
 
@@ -270,6 +270,8 @@ void DrawMapTile(Texture *texture, unsigned int sx, unsigned int sy, unsigned in
 }
 
 void DrawMapLayerTiles(cute_tiled_map_t* map, cute_tiled_layer_t* layer, int posX, int posY, Color tint) {
+    Vector2 origin = {0};
+    float rotation = 0.0f;
     for (int i = 0; i < layer->height; i++) {
         for (int j = 0; j < layer->width; j++) {
             int gid = layer->data[(i * layer->width) + j];
@@ -325,14 +327,37 @@ void DrawMapLayerTiles(cute_tiled_map_t* map, cute_tiled_layer_t* layer, int pos
                 (float)tileHeight
             };
 
-            if (hflip) src.width *= -1;
-            if (vflip) src.height *= -1;
-
-            // TODO: Handle diagonal flip (dflip)
+            if (dflip) {
+                if (hflip && vflip) {
+                    src.height *= -1;
+                    rotation = 270.0f;
+                }
+                else if (hflip) { //todo
+                    rotation = 90.0f;
+                }
+                else if (vflip) { //todo
+                    rotation = 270.0f;
+                }
+                else {
+                    rotation = -270.0f;
+                    src.height *= -1;
+                }
+                origin.x = dest.width * 0.5f;
+                origin.y = dest.height * 0.5f;
+                dest.x += origin.x;
+                dest.y += origin.y;
+            }
+            else {
+                if (hflip) src.width *= -1;
+                if (vflip) src.height *= -1;
+                rotation = 0.0f;
+                origin.x = 0.0f;
+                origin.y = 0.0f;
+            }
 
             Texture* tex = (Texture*)active_tileset->image.ptr;
             if (tex && tex->id > 0) {
-                DrawTexturePro(*tex, src, dest, (Vector2){0, 0}, 0.0f, ColorAlpha(tint, layer->opacity));
+                DrawTexturePro(*tex, src, dest, origin, rotation, ColorAlpha(tint, layer->opacity));
             }
         }
     }
