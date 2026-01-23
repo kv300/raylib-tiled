@@ -4,16 +4,18 @@
 #include "raylib-tiled.h"
 
 int main() {
-    
+
     // Initialization
     //--------------------------------------------------------------------------------------
     const int screenWidth = 800;
     const int screenHeight = 450;
+    Vector2 position = {0, 0};
 
-    InitWindow(screenWidth, screenHeight, "raylib [textures] example - image loading");
+    InitWindow(screenWidth, screenHeight, "raylib-tiled example");
+    SetTargetFPS(60);
 
     Map map = LoadMap("resources/desert.json");
-    
+
     //---------------------------------------------------------------------------------------
 
     // Main game loop
@@ -21,7 +23,23 @@ int main() {
     {
         // Update
         //----------------------------------------------------------------------------------
-        // TODO: Update your variables here
+        if (IsKeyDown(KEY_LEFT)) {
+            position.x += 2;
+        }
+        if (IsKeyDown(KEY_UP)) {
+            position.y += 2;
+        }
+        if (IsKeyDown(KEY_RIGHT)) {
+            position.x -= 2;
+        }
+        if (IsKeyDown(KEY_DOWN)) {
+            position.y -= 2;
+        }
+        if (IsMouseButtonDown(0)) {
+            Vector2 delta = GetMouseDelta();
+            position.x += delta.x;
+            position.y += delta.y;
+        }
         //----------------------------------------------------------------------------------
 
         // Draw
@@ -30,9 +48,7 @@ int main() {
 
             ClearBackground(RAYWHITE);
 
-            DrawMap(map, 10, 10, RAYWHITE);
-
-            DrawText("this IS a texture loaded from an image!", 300, 370, 10, GRAY);
+            DrawMap(map, (int)position.x, (int)position.y, RAYWHITE);
 
         EndDrawing();
         //----------------------------------------------------------------------------------

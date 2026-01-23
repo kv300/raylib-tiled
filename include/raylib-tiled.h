@@ -6,6 +6,7 @@
 *
 *   DEPENDENCIES:
 *       raylib https://www.raylib.com/
+*       cute_tiled.h https://github.com/RandyGaul/cute_headers/blob/master/cute_tiled.h
 *
 *   LICENSE: zlib/libpng
 *
@@ -116,6 +117,7 @@ extern "C" {
 
 struct Map {
     cute_tiled_map_t* map;
+    Color backgroundcolor;
 };
 
 Map LoadMap(const char* fileName) {
@@ -203,6 +205,9 @@ Map LoadMapFromMemory(const unsigned char *fileData, int dataSize, const char* b
     }
 
     output.map = map;
+
+    // Other Data
+    output.backgroundcolor = GetColor(map->backgroundcolor);
     return output;
 }
 
@@ -261,39 +266,76 @@ cute_tiled_tileset_t* GetTilesetFromHash(cute_tiled_tileset_t* tilesets, CUTE_TI
 
 void DrawMapTile(Texture *texture, unsigned int sx, unsigned int sy, unsigned int sw, unsigned int sh,
                int dx, int dy, float opacity, /*unsigned int flags,*/ Color tint) {
-    Color newTint = ColorAlpha(tint, opacity);
-    DrawTextureRec(*texture, (Rectangle) {sx, sy, sw, sh}, (Vector2) {dx, dy}, newTint);
+    DrawTextureRec(*texture, (Rectangle) {sx, sy, sw, sh}, (Vector2) {dx, dy}, ColorAlpha(tint, opacity));
 }
 
 void DrawMapLayerTiles(cute_tiled_map_t* map, cute_tiled_layer_t* layer, int posX, int posY, Color tint) {
-	unsigned long i, j;
-	unsigned int gid, x, y, w, h, flags;
-	float op;
-	cute_tiled_tileset_t *ts;
-	cute_tiled_string_t *im;
-	void* image;
-	op = layer->opacity;
-	for (i = 0; i < layer->height; i++) {
-		for (j = 0; j < layer->width; j++) {
-			gid = layer->data[(i * layer->width) + j];
+    for (int i = 0; i < layer->height; i++) {
+        for (int j = 0; j < layer->width; j++) {
+            int gid = layer->data[(i * layer->width) + j];
 
-            cute_tiled_tile_descriptor_t* tile = GetTileFromGid(map, gid);
-            
-            if (tile != NULL) {
-                ts = GetTilesetFromHash(map->tilesets, tile->image.hash_id);
-                if (ts != NULL) {
-                    x = ts->margin + (j * ts->tilewidth)  + (j * ts->spacing);
-                    y = ts->margin + (i * ts->tileheight)  + (i * ts->spacing);
-                    // x  = map->tiles[gid]->ul_x;
-                    // y  = map->tiles[gid]->ul_y;
-                    w  = ts->tilewidth;
-                    h  = ts->tileheight;
-                    // flags = (layer->content.gids[(i*map->width)+j]) & ~TMX_FLIP_BITS_REMOVAL;
-                    //DrawMapTile((Texture*)ts->image.ptr, x, y, w, h, j*ts->tilewidth + posX, i*ts->tileheight + posY, op, /*flags,*/ tint);
+            // Flags
+            int hflip, vflip, dflip;
+            cute_tiled_get_flags(gid, &hflip, &vflip, &dflip);
+            gid = cute_tiled_unset_flags(gid);
+
+            if (gid == 0) continue;
+
+            // Find tileset
+            cute_tiled_tileset_t* ts = map->tilesets;
+            cute_tiled_tileset_t* active_tileset = NULL;
+
+            while (ts) {
+                if (gid >= ts->firstgid && gid < ts->firstgid + ts->tilecount) {
+                    active_tileset = ts;
+                    break;
                 }
+                ts = ts->next;
             }
-		}
-	}
+
+            if (active_tileset == NULL) {
+                continue;
+            }
+
+            int localId = gid - active_tileset->firstgid;
+            int tileWidth = active_tileset->tilewidth;
+            int tileHeight = active_tileset->tileheight;
+            int spacing = active_tileset->spacing;
+            int margin = active_tileset->margin;
+            int columns = active_tileset->columns;
+
+            if (columns <= 0) {
+                continue;
+            }
+
+            int tileX = localId % columns;
+            int tileY = localId / columns;
+
+            Rectangle src = {
+                (float)(margin + (tileX * (tileWidth + spacing))),
+                (float)(margin + (tileY * (tileHeight + spacing))),
+                (float)tileWidth,
+                (float)tileHeight
+            };
+
+            Rectangle dest = {
+                (float)(j * tileWidth + posX),
+                (float)(i * tileHeight + posY),
+                (float)tileWidth,
+                (float)tileHeight
+            };
+
+            if (hflip) src.width *= -1;
+            if (vflip) src.height *= -1;
+
+            // TODO: Handle diagonal flip (dflip)
+
+            Texture* tex = (Texture*)active_tileset->image.ptr;
+            if (tex && tex->id > 0) {
+                DrawTexturePro(*tex, src, dest, (Vector2){0, 0}, 0.0f, ColorAlpha(tint, layer->opacity));
+            }
+        }
+    }
 }
 
 void DrawMapLayerImage(cute_tiled_string_t image, int posX, int posY, Color tint) {
@@ -319,8 +361,7 @@ void DrawMapLayer(cute_tiled_map_t* map, cute_tiled_layer_t* layer, int posX, in
 }
 
 void DrawMap(Map map, int posX, int posY, Color tint) {
-    Color background = GetColor(map.map->backgroundcolor);
-    DrawRectangle(posX, posY, map.map->width, map.map->height, background);
+    DrawRectangle(posX, posY, map.map->width, map.map->height, map.backgroundcolor);
     DrawMapLayer(map.map, map.map->layers, posX, posY, tint);
 }
 
