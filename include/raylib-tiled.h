@@ -415,7 +415,7 @@ void DrawMapLayer(cute_tiled_map_t* map, cute_tiled_layer_t* layer, int posX, in
             if (TextIsEqual(layer->type.ptr, "group")) {
                 DrawMapLayer(map, layer->layers, layer->offsetx + posX, layer->offsety + posY, tint);
             } else if (TextIsEqual(layer->type.ptr, "objectgroup")) {
-                DrawMapLayerObjects(layer->objects, layer->offsetx + posX, layer->offsety + posY, tint);
+                DrawMapLayerObjects(layer, layer->offsetx + posX, layer->offsety + posY, tint);
             } else if (TextIsEqual(layer->type.ptr, "imagelayer")) {
                 DrawMapLayerImage(layer, posX, posY, tint);
             } else if (TextIsEqual(layer->type.ptr, "tilelayer")) {
