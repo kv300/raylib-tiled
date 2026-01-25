@@ -1,0 +1,37 @@
+{
+    "activeFile": "resources/desert.tmx",
+    "expandedProjectPaths": [
+    ],
+    "fileStates": {
+        "resources/desert.json": {
+            "scale": 0.8379296875,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 640.2685189501656,
+                "y": 638.4783926157289
+            }
+        },
+        "resources/desert.json#Desert": {
+            "scaleInDock": 1
+        },
+        "resources/desert.tmx": {
+            "scale": 0.75,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 816.6666666666667,
+                "y": -390.66666666666663
+            }
+        },
+        "resources/desert.tmx#Desert": {
+            "scaleInDock": 1
+        }
+    },
+    "openFiles": [
+        "resources/desert.tmx"
+    ],
+    "project": "",
+    "recentFiles": [
+        "resources/desert.tmx",
+        "resources/desert.json"
+    ]
+}

@@ -332,10 +332,10 @@ void DrawMapLayerTiles(cute_tiled_map_t* map, cute_tiled_layer_t* layer, int pos
                     src.height *= -1;
                     rotation = 270.0f;
                 }
-                else if (hflip) { //todo
+                else if (hflip) {
                     rotation = 90.0f;
                 }
-                else if (vflip) { //todo
+                else if (vflip) {
                     rotation = 270.0f;
                 }
                 else {
@@ -363,9 +363,50 @@ void DrawMapLayerTiles(cute_tiled_map_t* map, cute_tiled_layer_t* layer, int pos
     }
 }
 
-void DrawMapLayerImage(cute_tiled_string_t image, int posX, int posY, Color tint) {
-    Texture* texture = (Texture*)image.ptr;
-    DrawTexture(*texture, posX, posY, tint);
+void DrawMapLayerImage(cute_tiled_layer_t* layer, int posX, int posY, Color tint) {
+    Texture* texture = (Texture*)layer->image.ptr;
+    if (!texture || texture->id == 0 || layer->opacity == 0.0f) return;
+
+    int startX = layer->offsetx + posX;
+    int startY = layer->offsety + posY;
+
+    int endX = layer->repeatx ? GetScreenWidth() : startX + texture->width;
+    int endY = layer->repeaty ? GetScreenHeight() : startY + texture->height;
+
+    int tileStartX = layer->repeatx ? (startX % texture->width) - texture->width : startX;
+    int tileStartY = layer->repeaty ? (startY % texture->height) - texture->height : startY;
+
+    for (int y = tileStartY; y < endY; y += texture->height) {
+        for (int x = tileStartX; x < endX; x += texture->width) {
+            // TODO: Add the layer's `tintcolor`
+            DrawTexture(*texture, x, y, ColorAlpha(tint, layer->opacity));
+            if (!layer->repeatx) break;
+        }
+        if (!layer->repeaty) break;
+    }
+}
+
+void DrawMapLayerObjects(cute_tiled_layer_t* layer, int posX, int posY, Color tint) {
+    cute_tiled_object_t* object = layer->objects;
+    Color color = ColorTint(GetColor(layer->tintcolor), tint);
+    while (object != NULL) {
+        if (object->visible == 1) {
+            if (object->ellipse) {
+                DrawEllipseLines(
+                    object->x + posX + object->width / 2,
+                    object->y + posY + object->height / 2,
+                    object->width / 2,
+                    object->height / 2,
+                    color);
+            }
+            else if (object->point) {
+                DrawCircle(object->x + posX, object->y + posY, 5.0f, color);
+            }
+            // TODO: Add gid drawing
+            // TODO: Add Polygon/Polyline drawing with vertices, vert_count, and vert_type.
+        }
+        object = object->next;
+    }
 }
 
 void DrawMapLayer(cute_tiled_map_t* map, cute_tiled_layer_t* layer, int posX, int posY, Color tint) {
@@ -374,9 +415,9 @@ void DrawMapLayer(cute_tiled_map_t* map, cute_tiled_layer_t* layer, int posX, in
             if (TextIsEqual(layer->type.ptr, "group")) {
                 DrawMapLayer(map, layer->layers, layer->offsetx + posX, layer->offsety + posY, tint);
             } else if (TextIsEqual(layer->type.ptr, "objectgroup")) {
-                //DrawMapLayerObjects(layer->objects, layer->offsetx + posX, layer->offsety + posY, tint);
+                DrawMapLayerObjects(layer->objects, layer->offsetx + posX, layer->offsety + posY, tint);
             } else if (TextIsEqual(layer->type.ptr, "imagelayer")) {
-                DrawMapLayerImage(layer->image, layer->offsetx + posX, layer->offsety + posY, tint);
+                DrawMapLayerImage(layer, posX, posY, tint);
             } else if (TextIsEqual(layer->type.ptr, "tilelayer")) {
                 DrawMapLayerTiles(map, layer, layer->offsetx + posX, layer->offsety + posY, tint);
             }
