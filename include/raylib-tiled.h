@@ -160,7 +160,8 @@ void LoadMapLayerData(cute_tiled_layer_t* layer, const char* baseDir) {
         LoadMapStringTexture(&layer->image, baseDir);
     }
     else if (TextIsEqual(layer->type.ptr, "group")) {
-        cute_tiled_layer_t* layer = layer->layers;
+        cute_tiled_layer_t* layer;
+        layer = layer->layers;
         while (layer) {
             LoadMapLayerData(layer, baseDir);
             layer = layer->next;
@@ -175,7 +176,8 @@ void UnloadMapLayerData(cute_tiled_layer_t* layer) {
         layer->image.ptr = "";
     }
     else if (TextIsEqual(layer->type.ptr, "group")) {
-        cute_tiled_layer_t* layer = layer->layers;
+        cute_tiled_layer_t* layer;
+        layer = layer->layers;
         while (layer) {
             UnloadMapLayerData(layer);
             layer = layer->next;
@@ -402,8 +404,27 @@ void DrawMapLayerObjects(cute_tiled_layer_t* layer, int posX, int posY, Color ti
             else if (object->point) {
                 DrawCircle(object->x + posX, object->y + posY, 5.0f, color);
             }
+            else if (object->vert_count) {
+                // check if its polygon or polyline 1 is polygon 0 is polyline
+                if (object->vert_type) {
+                    int num_points = object->vert_count + 1; // Add one for looping back
+                    Vector2* points = (Vector2*)MemAlloc(sizeof(Vector2) * num_points);
+
+                    for (int i = 0; i < object->vert_count; i++) {
+                        points[i].x = object->x + posX + object->vertices[i * 2];
+                        points[i].y = object->y + posY + object->vertices[i * 2 + 1];
+                    }
+                    // First and last point are the same
+                    points[object->vert_count] = points[0];
+
+                    // DrawRed line, at the moment there is no way to assign individual color per layer
+                    DrawLineStrip(points, num_points, RED);
+
+                    MemFree(points);
+                }
+            }
             // TODO: Add gid drawing
-            // TODO: Add Polygon/Polyline drawing with vertices, vert_count, and vert_type.
+            // TODO: Add Polyline drawing with vertices
         }
         object = object->next;
     }

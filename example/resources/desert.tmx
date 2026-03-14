@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="40" height="40" tilewidth="32" tileheight="32" infinite="0" nextlayerid="3" nextobjectid="1">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="40" height="40" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="7">
  <editorsettings>
-  <export target="desert.json" format="json"/>
+  <export target="desert2.json" format="json"/>
  </editorsettings>
  <tileset firstgid="1" name="Desert" tilewidth="32" tileheight="32" spacing="1" margin="1" tilecount="48" columns="8">
   <image source="tmw_desert_spacing.png" width="265" height="199"/>
@@ -117,4 +117,20 @@
 30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30
 </data>
  </layer>
+ <objectgroup color="#ff0000" id="3" name="Polygon">
+  <object id="1" x="378.988" y="1011.51">
+   <polygon points="0,0 -235.234,146.368 -181.653,-37.8988 -299.27,-155.516 -239.155,-295.349 -159.436,-164.664 -147.675,-81.0251 -54.8879,-135.913 -95.4005,-292.736 65.3428,-350.237 230.007,-147.675 75.7976,-115.003 -19.6028,-214.324 -18.296,-111.083 107.162,-52.2742 94.0936,52.2742 -9.14799,230.007 -117.617,246.996 -168.584,216.938 -146.368,152.902 -43.1262,118.924"/>
+  </object>
+ </objectgroup>
+ <objectgroup id="4" name="Line">
+  <object id="4" x="1063.78" y="295.349">
+   <polyline points="0,0 -198.642,312.339"/>
+  </object>
+  <object id="5" x="899.117" y="1105.6">
+   <polyline points="0,0 -226.086,-232.62"/>
+  </object>
+  <object id="6" x="284.895" y="601.154">
+   <polyline points="0,0 395.977,37.8988"/>
+  </object>
+ </objectgroup>
 </map>
