@@ -266,6 +266,75 @@ cute_tiled_tileset_t* GetTilesetFromHash(cute_tiled_tileset_t* tilesets, CUTE_TI
     return NULL;
 }
 
+
+/**
+ * Retrieves the polygon shape from a given Tiled layer.
+ *
+ * This function extracts the points of a polygon defined in a Tiled map layer and returns them as an array of `Vector2`.
+ * WARNING: One point is added to close the polygon loop.
+ *
+ * If the layer is null, has no objects, or the object's type is not a polygon, the function logs an error and returns null.
+ *
+ * @param layer A pointer to the `cute_tiled_layer_t` structure representing the Tiled layer.
+ * @return A dynamically allocated array of `Vector2` representing the polygon points, or `NULL` if an error occurs.
+ *         The caller is responsible for freeing the allocated memory.
+ */
+Vector2* GetPolygonShapeFromLayer(cute_tiled_layer_t* layer) {
+
+    if (layer == NULL ) {
+        TraceLog(LOG_ERROR, "TILED: Fail to read layer");
+        return NULL;
+    }
+
+    cute_tiled_object_t* object = layer->objects;
+    if (object == NULL) {
+        TraceLog(LOG_ERROR, "TILED: Fail to read layer object");
+        return NULL;
+    }
+
+    if (!object->vert_type && !object->vert_count) {
+        TraceLog(LOG_ERROR, "TILED: Layer type is not polygon");
+        return NULL;
+    }
+
+    int num_points = object->vert_count + 1; // Add one for looping back
+    Vector2* points = (Vector2*)MemAlloc(sizeof(Vector2) * num_points);
+
+    for (int i = 0; i < object->vert_count; i++) {
+        points[i].x = object->x + object->vertices[i * 2];
+        points[i].y = object->y + object->vertices[i * 2 + 1];
+    }
+    // First and last point are the same
+    points[object->vert_count] = points[0];
+
+    return points;
+
+}
+
+
+/**
+ * Applies an offset to a given array of 2D points, modifying them in place.
+ * Each point in the array is adjusted by adding the specified offset.
+ * Keep in mind that vert_count is +1 when it comes from GetPolygonShape function
+ *
+ * @param points Pointer to an array of Vector2 structures representing the points to offset.
+ * @param pointCount The number of points in the array.
+ * @param offset The offset to apply to all points in the array, represented as a Vector2.
+ * @return Pointer to the updated array of points if the input is not NULL,
+ *         otherwise returns NULL if the input points array is NULL.
+ */
+Vector2* SetPolygonOffset(Vector2* points, int pointCount, Vector2 offset) {
+    if (points == NULL) {
+        return NULL;
+    }
+
+    for (int i = 0; i < pointCount; i++) {
+        points[i].x += offset.x;
+        points[i].y += offset.y;
+    }
+    return points;
+}
+
 void DrawMapTile(Texture *texture, unsigned int sx, unsigned int sy, unsigned int sw, unsigned int sh,
                int dx, int dy, float opacity, /*unsigned int flags,*/ Color tint) {
     DrawTextureRec(*texture, (Rectangle) {sx, sy, sw, sh}, (Vector2) {dx, dy}, ColorAlpha(tint, opacity));
@@ -407,16 +476,11 @@ void DrawMapLayerObjects(cute_tiled_layer_t* layer, int posX, int posY, Color ti
             else if (object->vert_count) {
                 // check if its polygon or polyline 1 is polygon 0 is polyline
                 if (object->vert_type) {
-                    int num_points = object->vert_count + 1; // Add one for looping back
-                    Vector2* points = (Vector2*)MemAlloc(sizeof(Vector2) * num_points);
+                    Vector2* points = GetPolygonShapeFromLayer(layer);
+                    // last point is added to be the same as first
+                    int num_points = object->vert_count + 1;
 
-                    for (int i = 0; i < object->vert_count; i++) {
-                        points[i].x = object->x + posX + object->vertices[i * 2];
-                        points[i].y = object->y + posY + object->vertices[i * 2 + 1];
-                    }
-                    // First and last point are the same
-                    points[object->vert_count] = points[0];
-
+                    points = SetPolygonOffset(points, num_points, (Vector2){posX, posY});
                     // DrawRed line, at the moment there is no way to assign individual color per layer
                     DrawLineStrip(points, num_points, RED);
 
