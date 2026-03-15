@@ -335,6 +335,48 @@ Vector2* SetPolygonOffset(Vector2* points, int pointCount, Vector2 offset) {
     return points;
 }
 
+cute_tiled_layer_t* GetLayerByName(cute_tiled_map_t* map, const char* layerName) {
+    if (map == NULL || layerName == NULL) {
+        TraceLog(LOG_ERROR, "TILED: Fail to read map");
+        return NULL;
+    }
+    cute_tiled_layer_t* layer = map->layers;
+    while (layer != NULL) {
+        if (TextIsEqual(layer->name.ptr, layerName)) {
+            return layer;
+        }
+        layer = layer->next;
+    }
+    TraceLog(LOG_ERROR, "TILED: No layer %s", layerName);
+    return NULL;
+}
+
+/**
+ * Checks whether a point collides with a polygon shape in a specific layer of a map.
+ *
+ * @param map The map containing the layers and objects to check.
+ * @param point The point to check for collision.
+ * @param position The offset position applied to the polygon.
+ * @param layerName The name of the layer containing the polygon shape to check.
+ * @return True if the point collides with the polygon on the specified layer, false otherwise.
+ */
+bool CheckCollisionPointLayerPoly(Map map, Vector2 point, Vector2 position, const char* layerName) {
+    cute_tiled_layer_t* layer = GetLayerByName(map.map, layerName);
+    if (layer == NULL) {
+        TraceLog(LOG_ERROR, "TILED: Fail to load layer %s", layerName);
+        return NULL;
+    }
+    Vector2* points = GetPolygonShapeFromLayer(layer);
+    if (points == NULL) {
+        return NULL;
+    }
+
+    int pointCount = layer->objects->vert_count + 1;
+    points = SetPolygonOffset(points, pointCount, position);
+
+    return CheckCollisionPointPoly(point,points, pointCount);
+}
+
 void DrawMapTile(Texture *texture, unsigned int sx, unsigned int sy, unsigned int sw, unsigned int sh,
                int dx, int dy, float opacity, /*unsigned int flags,*/ Color tint) {
     DrawTextureRec(*texture, (Rectangle) {sx, sy, sw, sh}, (Vector2) {dx, dy}, ColorAlpha(tint, opacity));
