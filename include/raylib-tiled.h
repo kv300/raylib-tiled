@@ -268,25 +268,18 @@ cute_tiled_tileset_t* GetTilesetFromHash(cute_tiled_tileset_t* tilesets, CUTE_TI
 
 
 /**
- * Retrieves the polygon shape from a given Tiled layer.
+ * Retrieves the polygon shape from a given Tiled layer object.
  *
  * This function extracts the points of a polygon defined in a Tiled map layer and returns them as an array of `Vector2`.
  * WARNING: One point is added to close the polygon loop.
  *
  * If the layer is null, has no objects, or the object's type is not a polygon, the function logs an error and returns null.
  *
- * @param layer A pointer to the `cute_tiled_layer_t` structure representing the Tiled layer.
+ * @param object A pointer to the `cute_tiled_object_t` structure representing the Tiled layer object.
  * @return A dynamically allocated array of `Vector2` representing the polygon points, or `NULL` if an error occurs.
  *         The caller is responsible for freeing the allocated memory.
  */
-Vector2* GetPolygonShapeFromLayer(cute_tiled_layer_t* layer) {
-
-    if (layer == NULL ) {
-        TraceLog(LOG_ERROR, "TILED: Fail to read layer");
-        return NULL;
-    }
-
-    cute_tiled_object_t* object = layer->objects;
+Vector2* GetPolygonShapeFromObject(cute_tiled_object_t* object) {
     if (object == NULL) {
         TraceLog(LOG_ERROR, "TILED: Fail to read layer object");
         return NULL;
@@ -308,7 +301,6 @@ Vector2* GetPolygonShapeFromLayer(cute_tiled_layer_t* layer) {
     points[object->vert_count] = points[0];
 
     return points;
-
 }
 
 
@@ -366,15 +358,30 @@ bool CheckCollisionPointLayerPoly(Map map, Vector2 point, Vector2 position, cons
         TraceLog(LOG_ERROR, "TILED: Fail to load layer %s", layerName);
         return NULL;
     }
-    Vector2* points = GetPolygonShapeFromLayer(layer);
-    if (points == NULL) {
-        return NULL;
+    cute_tiled_object_t* object = layer->objects;
+
+    while (object != NULL) {
+        Vector2* points = GetPolygonShapeFromObject(object);
+        if (points == NULL) {
+            object = object->next;
+            continue;
+        }
+
+        int pointCount = object->vert_count + 1;
+        points = SetPolygonOffset(points, pointCount, position);
+
+        bool colide = CheckCollisionPointPoly(point, points, pointCount);
+
+        //DrawLineStrip(points, pointCount, RED); // DEBUG
+        MemFree(points);
+
+        if (colide) {
+            return true;
+        }
+        object = object->next;
     }
-
-    int pointCount = layer->objects->vert_count + 1;
-    points = SetPolygonOffset(points, pointCount, position);
-
-    return CheckCollisionPointPoly(point,points, pointCount);
+    MemFree(object);
+    return false;
 }
 
 void DrawMapTile(Texture *texture, unsigned int sx, unsigned int sy, unsigned int sw, unsigned int sh,
@@ -518,7 +525,7 @@ void DrawMapLayerObjects(cute_tiled_layer_t* layer, int posX, int posY, Color ti
             else if (object->vert_count) {
                 // check if its polygon or polyline 1 is polygon 0 is polyline
                 if (object->vert_type) {
-                    Vector2* points = GetPolygonShapeFromLayer(layer);
+                    Vector2* points = GetPolygonShapeFromObject(object);
                     // last point is added to be the same as first
                     int num_points = object->vert_count + 1;
 

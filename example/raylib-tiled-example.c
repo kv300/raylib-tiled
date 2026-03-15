@@ -2,7 +2,6 @@
 
 #define RAYLIB_TILED_IMPLEMENTATION
 #include "raylib-tiled.h"
-#include "raymath.h"
 
 int main() {
 
@@ -65,7 +64,10 @@ int main() {
 
         // check for collision
         if (CheckCollisionPointLayerPoly(map, ballPosition, position, "Polygon")) {
-            TraceLog(LOG_INFO, "Collision detected with polygon layer");
+            TraceLog(LOG_INFO, "Collision! Visible");
+        }
+        if (CheckCollisionPointLayerPoly(map, ballPosition, position, "InvisiblePolygon")) {
+            TraceLog(LOG_INFO, "Collision! Invisible");
         }
         //----------------------------------------------------------------------------------
 
